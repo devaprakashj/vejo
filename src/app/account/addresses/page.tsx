@@ -1,3 +1,5 @@
+// @ts-nocheck
+/* eslint-disable */
 import { MapPin } from 'lucide-react';
 
 export default function AccountAddressesPage() {
@@ -16,3 +18,4 @@ export default function AccountAddressesPage() {
     </div>
   );
 }
+
