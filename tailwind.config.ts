@@ -9,8 +9,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        background: "#FAFAFA",
+        surface: "#FFFFFF",
+        surfaceBorder: "#E5E5E5",
+        textPrimary: "#111111",
+        textSecondary: "#666666",
+        accent: "#000000",
+        badgeDark: "#222222",
+      },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'sans-serif'],
+        serif: ['Georgia', 'serif'],
       },
     },
   },
