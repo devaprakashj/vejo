@@ -142,7 +142,7 @@ export function MobileMenuDrawer() {
               </Link>
               <Link href="#" className="flex items-center gap-3 text-xs text-textSecondary hover:text-textPrimary transition-colors">
                 <Mail className="w-4 h-4 stroke-[1.5]" />
-                hello@vejostudio.com
+                ritaidevelopers@gmail.com
               </Link>
             </div>
           </motion.div>

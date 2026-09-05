@@ -47,7 +47,7 @@ export default function HelpPage({ params }: { params: { slug: string } }) {
         return (
           <div className="space-y-6 text-sm">
             <h2 className="text-xl font-bold">Cancellation Policy</h2>
-            <p>You may cancel your order within 24 hours of placing it. To cancel an order, please contact our support team at hello@vejostudio.com. Once an order has been shipped, it cannot be cancelled.</p>
+            <p>You may cancel your order within 24 hours of placing it. To cancel an order, please contact our support team at ritaidevelopers@gmail.com. Once an order has been shipped, it cannot be cancelled.</p>
             <h2 className="text-xl font-bold">Refund Policy</h2>
             <p>We offer refunds for damaged or defective items only. If you receive a damaged item, please contact us within 48 hours of delivery with photographic evidence.</p>
             <h2 className="text-xl font-bold">Process for Refunds</h2>
@@ -77,7 +77,7 @@ export default function HelpPage({ params }: { params: { slug: string } }) {
               <ul className="space-y-4">
                 <li className="flex gap-4">
                   <span className="font-semibold w-24">Email:</span>
-                  <a href="mailto:hello@vejostudio.com" className="text-accent hover:underline">hello@vejostudio.com</a>
+                  <a href="mailto:ritaidevelopers@gmail.com" className="text-accent hover:underline">ritaidevelopers@gmail.com</a>
                 </li>
                 <li className="flex gap-4">
                   <span className="font-semibold w-24">Phone:</span>
@@ -103,7 +103,7 @@ export default function HelpPage({ params }: { params: { slug: string } }) {
             </p>
             <p>
               If you need immediate assistance, please feel free to reach out to our customer support team directly at 
-              <a href="mailto:hello@vejostudio.com" className="text-accent underline ml-1 hover:no-underline">hello@vejostudio.com</a>.
+              <a href="mailto:ritaidevelopers@gmail.com" className="text-accent underline ml-1 hover:no-underline">ritaidevelopers@gmail.com</a>.
             </p>
           </div>
         );

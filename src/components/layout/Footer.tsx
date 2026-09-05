@@ -62,7 +62,7 @@ export function Footer() {
               <a href="#" className="hover:text-white transition-colors">Youtube</a>
             </div>
             <div className="text-gray-400 font-light space-y-2">
-              <p className="text-sm">hello@vejostudio.com</p>
+              <p className="text-sm">ritaidevelopers@gmail.com</p>
               <p className="text-sm">+91 8667466390</p>
             </div>
           </div>
