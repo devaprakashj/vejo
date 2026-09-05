@@ -49,7 +49,8 @@ export function PushNotificationManager() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save subscription on server');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save subscription on server');
       }
 
       setMessage('Subscribed successfully!');
