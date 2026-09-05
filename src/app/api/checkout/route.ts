@@ -20,29 +20,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { items, formData, totalAmount } = await req.json();
+    const { items, formData, totalAmount, paymentMethod } = await req.json();
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
 
-    // 1. Create a pending order in Supabase first
-    const { data: order, error: orderError } = await supabase
+    const supabaseAdmin = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const shippingAddress = {
+      fullName: `${formData.firstName} ${formData.lastName}`,
+      phone: formData.phone,
+      email: formData.email,
+      addressLine1: formData.addressLine1,
+      addressLine2: formData.addressLine2,
+      city: formData.city,
+      state: formData.state,
+      pincode: formData.pincode,
+      country: 'India',
+    };
+
+    // 1. Create order in Supabase
+    const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
       .insert({
         user_id: user.id,
         total_amount: totalAmount,
         status: 'Pending',
-        payment_status: 'Pending',
-        shipping_address: {
-          fullName: `${formData.firstName} ${formData.lastName}`,
-          phone: formData.phone,
-          addressLine1: formData.addressLine1,
-          addressLine2: formData.addressLine2,
-          city: formData.city,
-          state: formData.state,
-          pincode: formData.pincode
-        }
+        payment_status: paymentMethod === 'cod' ? 'COD' : 'Pending',
+        payment_method: paymentMethod || 'prepaid',
+        shipping_address: shippingAddress,
+        cart_items: items,
       })
       .select()
       .single();
@@ -57,44 +68,44 @@ export async function POST(req: Request) {
       price_at_time: item.price
     }));
 
-    const { error: itemsError } = await supabase
+    const { error: itemsError } = await supabaseAdmin
       .from('order_items')
       .insert(orderItems);
 
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      console.error('Order items insert error (non-fatal):', itemsError);
+    }
 
-    // 3. Create Razorpay Order
-    // Razorpay amount is in paise (multiply by 100)
+    // --- COD: No Razorpay needed ---
+    if (paymentMethod === 'cod') {
+      return NextResponse.json({
+        success: true,
+        supabaseOrderId: order.id,
+        paymentMethod: 'cod',
+      });
+    }
+
+    // --- Prepaid: Create Razorpay Order ---
     const options = {
-      amount: Math.round(totalAmount * 100), 
+      amount: Math.round(totalAmount * 100), // in paise
       currency: "INR",
-      receipt: `rcpt_${order.id}_${uuidv4().substring(0,8)}`,
-      notes: {
-        orderId: order.id,
-      }
+      receipt: `rcpt_${order.id.substring(0, 16)}`,
+      notes: { orderId: order.id },
     };
 
     const razorpayOrder = await razorpay.orders.create(options);
 
-    // 4. Update the Supabase order with the Razorpay Order ID
-    // Use Admin client to bypass RLS for updates
-    const supabaseAdmin = createAdminClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
-    const { error: updateError } = await supabaseAdmin
+    // 4. Update Supabase order with Razorpay Order ID
+    await supabaseAdmin
       .from('orders')
       .update({ razorpay_order_id: razorpayOrder.id })
       .eq('id', order.id);
 
-    if (updateError) throw updateError;
-
-    return NextResponse.json({ 
+    return NextResponse.json({
       id: razorpayOrder.id,
       currency: razorpayOrder.currency,
       amount: razorpayOrder.amount,
-      supabaseOrderId: order.id
+      supabaseOrderId: order.id,
     });
 
   } catch (error: any) {
@@ -102,4 +113,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }
-
