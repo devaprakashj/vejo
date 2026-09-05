@@ -42,10 +42,19 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
   const [viewers, setViewers] = useState(0);
   const [stock, setStock] = useState(0);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [deliveryDate, setDeliveryDate] = useState('');
 
   const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const openCart = useCartStore((state) => state.openCart);
+  const cartItems = useCartStore((state) => state.items);
+  const [isInCart, setIsInCart] = useState(false);
+
+  // Keep isInCart in sync with cart (handles Zustand persist hydration)
+  useEffect(() => {
+    if (!product) return;
+    setIsInCart(cartItems.some((i) => i.id === params.id));
+  }, [cartItems, product, params.id]);
 
   const toggleWishlist = useWishlistStore((state) => state.toggleItem);
   const isWishlisted = useWishlistStore((state) => state.isInWishlist(product?.id || ''));
@@ -106,7 +115,13 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
       // Initialize random conversion numbers
       setTimeLeft(Math.floor(Math.random() * 10000) + 3600);
       setViewers(Math.floor(Math.random() * 40) + 12);
-      setStock(Math.floor(Math.random() * 5) + 2); // 2 to 6 items left
+      setStock(Math.floor(Math.random() * 5) + 2);
+
+      // Dynamic Delivery Date
+      const today = new Date();
+      const delivDay = new Date(today);
+      delivDay.setDate(today.getDate() + (today.getHours() < 14 ? 1 : 2));
+      setDeliveryDate(delivDay.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }));
     }
     fetchData();
 
@@ -146,8 +161,7 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
       value: product.price * quantity,
       currency: 'INR'
     });
-    
-    openCart();
+    // Don't open cart — button will change to "Go to Cart"
   };
 
   const handleBuyNow = () => {
@@ -238,12 +252,26 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
           <div className="w-full lg:w-1/2">
             <div className="flex flex-col pt-2 lg:pt-8">
               
+              {/* Social Proof Bar */}
+              <div className="flex flex-wrap items-center gap-3 mb-5 py-3 px-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 rounded-xl">
+                <div className="flex items-center gap-1">
+                  {[1,2,3,4,5].map(i => <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
+                  <span className="text-xs font-bold text-gray-700 ml-1">4.9</span>
+                </div>
+                <span className="text-gray-300">|</span>
+                <span className="text-xs text-gray-600 font-medium">2,847 Happy Customers</span>
+                <span className="text-gray-300">|</span>
+                <span className="flex items-center gap-1 text-xs font-semibold text-red-600">
+                  <Flame className="w-3.5 h-3.5" /> Trending Today
+                </span>
+              </div>
+
               {/* Title & Price Section (Redesigned) */}
               <div className="mb-6 font-sans">
                 {/* Stock Status */}
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#52b174]"></div>
-                  <span className="text-sm text-textPrimary">Item is in stock</span>
+                  <div className="w-2.5 h-2.5 rounded-full bg-[#52b174] animate-pulse"></div>
+                  <span className="text-sm text-textPrimary font-medium">In Stock — Ready to Ship</span>
                 </div>
 
                 {/* Title */}
@@ -335,25 +363,29 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
                 </div>
               )}
 
-              {/* Conversion Triggers: Live Viewers & Scarcity */}
+              {/* Conversion Triggers */}
               <div className="flex flex-col gap-2 mb-4">
-                <div className="flex items-center gap-2 text-red-600 text-xs font-bold uppercase tracking-wide">
+                <div className="flex items-center gap-2 text-red-600 text-xs font-bold">
                   <Flame className="w-4 h-4 animate-pulse" />
-                  <span>High Demand: Only {stock} items left in stock</span>
+                  <span>🔥 High Demand — Only <span className="underline decoration-dotted">{stock} items</span> left in stock!</span>
                 </div>
                 <div className="flex items-center gap-2 text-textSecondary text-xs">
                   <Eye className="w-4 h-4" />
                   <span>{viewers} people are viewing this right now</span>
                 </div>
+                <div className="flex items-center gap-2 text-green-700 text-xs font-semibold">
+                  <Truck className="w-4 h-4" />
+                  <span>Free delivery · Ships in <span className="font-bold">7 to 10 business days</span></span>
+                </div>
               </div>
 
-              {/* Urgency / Conversion Timer Banner */}
-              <div className="bg-[#FAF9F6] border border-surfaceBorder p-4 mb-8 flex items-center justify-between">
+              {/* Flash Sale Timer */}
+              <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 p-4 mb-6 rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-accent animate-pulse" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-textPrimary">Flash Sale Ends In</span>
+                  <Clock className="w-4 h-4 text-red-500 animate-pulse" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-red-700">Flash Sale Ends In</span>
                 </div>
-                <div className="text-sm font-bold font-mono tracking-wider text-accent bg-white px-3 py-1 border border-surfaceBorder">
+                <div className="text-sm font-bold font-mono tracking-wider text-red-600 bg-white px-3 py-1.5 border border-red-100 rounded-lg shadow-sm">
                   {formatTime(timeLeft)}
                 </div>
               </div>
@@ -378,13 +410,23 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
                     </button>
                   </div>
 
-                  {/* Add to Cart Button */}
-                  <button 
-                    onClick={handleAddToCart}
-                    className="flex-1 bg-white border border-accent text-accent font-bold tracking-widest uppercase text-sm hover:bg-accent hover:text-white transition-colors h-full"
-                  >
-                    Add to Cart
-                  </button>
+                  {/* Add to Cart / Go to Cart Button */}
+                  {isInCart ? (
+                    <button
+                      onClick={openCart}
+                      className="flex-1 bg-accent text-white font-bold tracking-widest uppercase text-sm hover:bg-opacity-90 transition-colors h-full flex items-center justify-center gap-2"
+                    >
+                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                      Go to Cart
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleAddToCart}
+                      className="flex-1 bg-white border border-accent text-accent font-bold tracking-widest uppercase text-sm hover:bg-accent hover:text-white transition-colors h-full"
+                    >
+                      Add to Cart
+                    </button>
+                  )}
                   
                   {/* Wishlist Button */}
                   <button
@@ -395,39 +437,56 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
                   </button>
                 </div>
 
-                {/* Buy Now Button */}
-                <button 
+                {/* Buy Now Button — Premium */}
+                <button
                   onClick={handleBuyNow}
-                  className="w-full h-14 bg-[#1e293b] text-white flex items-center justify-center gap-2 font-bold tracking-widest uppercase text-sm hover:bg-opacity-90 transition-colors shadow-lg rounded-md"
+                  className="w-full h-14 relative overflow-hidden rounded-xl group"
+                  style={{
+                    background: 'linear-gradient(135deg, #b8860b 0%, #d4a017 40%, #c8972a 70%, #a0720a 100%)',
+                    boxShadow: '0 4px 20px rgba(180, 130, 20, 0.35), inset 0 1px 0 rgba(255,255,255,0.15)'
+                  }}
                 >
-                  Buy Now <Zap className="w-4 h-4 fill-current mb-0.5 text-yellow-400" />
+                  {/* shimmer effect */}
+                  <span className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  <span className="relative flex items-center justify-center gap-2.5 font-bold tracking-[0.15em] uppercase text-[13px] text-white">
+                    Buy Now
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 5l7 7-7 7M5 12h14" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                    </svg>
+                  </span>
                 </button>
 
-                {/* Accepted Payments Row (Original Logos) */}
-                <div className="flex items-center justify-center gap-4 py-4 bg-[#f8f8f8] border border-surfaceBorder rounded-md mt-2">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" className="h-4 md:h-5 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300" />
-                  <div className="w-1 h-1 rounded-full bg-gray-300" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe" className="h-4 md:h-5 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300" />
-                  <div className="w-1 h-1 rounded-full bg-gray-300" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg" alt="Paytm" className="h-3 md:h-4 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300" />
-                  <div className="w-1 h-1 rounded-full bg-gray-300" />
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-3 md:h-4 object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300" />
+                {/* Accepted Payments Row — Full Color */}
+                <div className="flex items-center justify-center gap-4 py-4 bg-white border border-surfaceBorder rounded-xl mt-1 shadow-sm">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Google_Pay_Logo.svg" alt="Google Pay" className="h-5 md:h-6 object-contain opacity-90 hover:opacity-100 transition-opacity" />
+                  <div className="w-px h-5 bg-gray-200" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/7/71/PhonePe_Logo.svg" alt="PhonePe" className="h-5 md:h-6 object-contain opacity-90 hover:opacity-100 transition-opacity" />
+                  <div className="w-px h-5 bg-gray-200" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/24/Paytm_Logo_%28standalone%29.svg" alt="Paytm" className="h-4 md:h-5 object-contain opacity-90 hover:opacity-100 transition-opacity" />
+                  <div className="w-px h-5 bg-gray-200" />
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-4 md:h-5 object-contain opacity-90 hover:opacity-100 transition-opacity" />
                 </div>
               </div>
 
-              {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-2 py-6 border-y border-surfaceBorder mb-8">
-                <div className="flex flex-col items-center text-center gap-2">
-                  <Truck className="w-5 h-5 text-textPrimary" />
-                  <span className="text-[10px] uppercase font-semibold text-textSecondary tracking-wider">Free Shipping</span>
+              {/* Trust Badges — Premium */}
+              <div className="grid grid-cols-3 gap-3 my-6">
+                <div className="flex flex-col items-center text-center gap-2 p-3 bg-green-50 border border-green-100 rounded-xl">
+                  <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                    <Truck className="w-4 h-4 text-green-700" />
+                  </div>
+                  <span className="text-[10px] font-bold text-green-800 uppercase tracking-wide leading-tight">Free Shipping<br/>All India</span>
                 </div>
-                <div className="flex flex-col items-center text-center gap-2">
-                  <RotateCcw className="w-5 h-5 text-textPrimary" />
-                  <span className="text-[10px] uppercase font-semibold text-textSecondary tracking-wider">30-Day Returns</span>
+                <div className="flex flex-col items-center text-center gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                    <RotateCcw className="w-4 h-4 text-blue-700" />
+                  </div>
+                  <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wide leading-tight">7-Day Easy<br/>Returns</span>
                 </div>
-                <div className="flex flex-col items-center text-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-textPrimary" />
-                  <span className="text-[10px] uppercase font-semibold text-textSecondary tracking-wider">2-Year Warranty</span>
+                <div className="flex flex-col items-center text-center gap-2 p-3 bg-orange-50 border border-orange-100 rounded-xl">
+                  <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center">
+                    <Banknote className="w-4 h-4 text-orange-700" />
+                  </div>
+                  <span className="text-[10px] font-bold text-orange-800 uppercase tracking-wide leading-tight">COD<br/>Available</span>
                 </div>
               </div>
 
@@ -460,10 +519,11 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
                     <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${activeAccordion === "shipping" ? "rotate-180" : ""}`} />
                   </button>
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${activeAccordion === "shipping" ? "max-h-96 pb-5 opacity-100" : "max-h-0 opacity-0"}`}>
-                    <p className="text-sm text-textSecondary leading-relaxed">
-                      Complimentary express shipping on all orders above ₹10,000. 
-                      Returns are accepted within 30 days of delivery in their original condition and packaging.
-                    </p>
+                    <div className="text-sm text-textSecondary leading-relaxed space-y-2">
+                      <p>🚚 <strong>Free delivery</strong> across India — delivered in <strong>7 to 10 business days</strong>.</p>
+                      <p>↩️ <strong>7-Day Return Policy</strong> — not satisfied? Return the product within 7 days of delivery in its original, unused condition.</p>
+                      <p>💳 <strong>Cash on Delivery</strong> available on all orders.</p>
+                    </div>
                   </div>
                 </div>
 
@@ -513,19 +573,23 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
         </div>
       )}
 
-      {/* Sticky Mobile "Add to Cart" Bar */}
+      {/* Sticky Mobile Bar - enhanced */}
       <div 
-        className={`fixed bottom-0 left-0 right-0 bg-white border-t border-surfaceBorder p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-50 transition-transform duration-300 md:hidden flex gap-3 items-center ${
+        className={`fixed bottom-0 left-0 right-0 bg-white border-t border-surfaceBorder px-4 py-3 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] z-50 transition-transform duration-300 md:hidden flex gap-3 items-center ${
           showStickyBar ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-textPrimary line-clamp-1">{product.name}</p>
-          <p className="text-xs font-bold text-accent">₹{product.price.toLocaleString()}</p>
+          <p className="text-sm font-bold text-accent">₹{product.price.toLocaleString()}</p>
         </div>
+        <button onClick={handleAddToCart} className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider border border-accent text-accent rounded-lg">
+          Cart
+        </button>
         <button 
-          onClick={handleAddToCart}
-          className="bg-accent text-white px-6 py-3 text-xs font-bold uppercase tracking-widest rounded-md"
+          onClick={handleBuyNow}
+          className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white rounded-lg"
+          style={{ background: 'linear-gradient(135deg, #b8860b, #d4a017)' }}
         >
           Buy Now
         </button>

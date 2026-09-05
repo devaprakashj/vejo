@@ -53,7 +53,6 @@ export async function POST(req: Request) {
         payment_status: paymentMethod === 'cod' ? 'COD' : 'Pending',
         payment_method: paymentMethod || 'prepaid',
         shipping_address: shippingAddress,
-        cart_items: items,
       })
       .select()
       .single();
