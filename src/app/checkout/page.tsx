@@ -36,6 +36,8 @@ export default function CheckoutPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('prepaid');
+  const [paidTotal, setPaidTotal] = useState(0);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     firstName: '', lastName: '', email: '', phone: '',
@@ -65,14 +67,19 @@ export default function CheckoutPage() {
   const total = subtotal - prepaidDiscount;
 
   const deliveryDate = (() => {
-    const d = new Date();
-    d.setDate(d.getDate() + (d.getHours() < 14 ? 2 : 3));
-    return d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'short' });
+    const start = new Date();
+    const end = new Date();
+    start.setDate(start.getDate() + 7);
+    end.setDate(end.getDate() + 10);
+    const startStr = start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    const endStr = end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    return `${startStr} – ${endStr}`;
   })();
 
   const handleCODOrder = async () => {
     if (!userId) { router.push('/login?redirect=/checkout'); return; }
     setIsProcessing(true);
+    setCheckoutError(null);
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -81,12 +88,13 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to place order');
+      setPaidTotal(total);
       clearCart();
       setIsSuccess(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       fpixel.event('Purchase', { value: total, currency: 'INR', payment_method: 'COD' });
     } catch (err: any) {
-      alert('Error: ' + err.message);
+      setCheckoutError(err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -95,6 +103,7 @@ export default function CheckoutPage() {
   const handlePrepaidPayment = async () => {
     if (!userId) { router.push('/login?redirect=/checkout'); return; }
     setIsProcessing(true);
+    setCheckoutError(null);
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -125,25 +134,33 @@ export default function CheckoutPage() {
           const verifyData = await verifyRes.json();
           if (verifyRes.ok && verifyData.success) {
             fpixel.event('Purchase', { value: total, currency: 'INR' });
+            setPaidTotal(total);
             clearCart();
             setIsSuccess(true);
             setIsProcessing(false);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           } else {
-            alert("Payment verification failed. Please contact support.");
+            setCheckoutError("Payment verification failed. Please try again or contact support.");
             setIsProcessing(false);
           }
         },
         prefill: { name: `${formData.firstName} ${formData.lastName}`, email: formData.email, contact: formData.phone },
         theme: { color: "#111827" },
-        modal: { ondismiss: () => setIsProcessing(false) }
+        modal: { ondismiss: () => {
+          setCheckoutError("Payment cancelled. You can try again when you're ready.");
+          setIsProcessing(false);
+        }}
       };
       // @ts-ignore
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', (r: any) => { alert("Payment failed: " + r.error.description); setIsProcessing(false); });
+      rzp.on('payment.failed', (r: any) => { 
+        setCheckoutError(`Payment failed: ${r.error.description || 'Unknown error'}. Please try again.`); 
+        setIsProcessing(false); 
+      });
       rzp.open();
     } catch (error: any) {
-      alert("Error: " + error.message);
+      console.error(error);
+      setCheckoutError(error.message || 'Something went wrong. Please try again.');
       setIsProcessing(false);
     }
   };
@@ -161,7 +178,6 @@ export default function CheckoutPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-16">
         <div className="w-full max-w-sm">
-          {/* Icon */}
           <div className="flex justify-center mb-6">
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
               <CheckCircle2 className="w-10 h-10 text-green-500" strokeWidth={1.5} />
@@ -175,19 +191,18 @@ export default function CheckoutPage() {
               : 'Payment received! Your order is being processed.'}
           </p>
 
-          {/* Receipt card */}
           <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-100 mb-6 overflow-hidden">
             <div className="flex justify-between items-center px-5 py-4">
               <span className="text-sm text-gray-500">Payment</span>
               <span className="text-sm font-semibold text-gray-900">{paymentMethod === 'cod' ? 'Cash on Delivery' : 'Paid Online'}</span>
             </div>
             <div className="flex justify-between items-center px-5 py-4">
-              <span className="text-sm text-gray-500">Estimated Delivery</span>
-              <span className="text-sm font-semibold text-gray-900">{deliveryDate}</span>
+              <span className="text-sm text-gray-500">Est. Delivery</span>
+              <span className="text-sm font-semibold text-gray-900">7 – 10 Business Days</span>
             </div>
             <div className="flex justify-between items-center px-5 py-4">
               <span className="text-sm text-gray-500">Total Paid</span>
-              <span className="text-base font-bold text-gray-900">₹{total.toLocaleString()}</span>
+              <span className="text-base font-bold text-gray-900">₹{paidTotal.toLocaleString()}</span>
             </div>
           </div>
 
@@ -207,7 +222,6 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-white">
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
         <Link href="/" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors">
           <ChevronLeft className="w-4 h-4" />
@@ -220,7 +234,6 @@ export default function CheckoutPage() {
         </div>
       </header>
 
-      {/* Not logged in banner */}
       {mounted && !userId && (
         <div className="bg-amber-50 border-b border-amber-200 px-5 py-3 flex items-center gap-3">
           <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
@@ -231,13 +244,9 @@ export default function CheckoutPage() {
       )}
 
       <div className="flex flex-col lg:flex-row min-h-[calc(100vh-57px)]">
-
-          {/* ──── LEFT COLUMN ──────────────────── */}
           <div className="w-full lg:w-[55%] bg-white border-r border-gray-100 px-6 sm:px-10 lg:px-16 py-8 space-y-6">
 
             <form onSubmit={handleSubmit} className="space-y-4">
-
-              {/* Section 1 — Contact */}
               <section className="bg-white rounded-2xl overflow-hidden border border-gray-200/70">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
@@ -272,46 +281,33 @@ export default function CheckoutPage() {
                         placeholder="9876543210" maxLength={10} pattern="[0-9]{10}"
                         className="flex-1 px-4 py-3 border border-gray-200 rounded-r-xl text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-900/5 transition-all bg-white" />
                     </div>
-                    <p className="text-xs text-gray-400 mt-1.5 ml-1">Delivery updates will be sent here</p>
                   </div>
                 </div>
               </section>
 
-              {/* Section 2 — Address */}
               <section className="bg-white rounded-2xl overflow-hidden border border-gray-200/70">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="w-6 h-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
                     <h2 className="font-semibold text-gray-900 text-sm">Delivery Address</h2>
                   </div>
-                  <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
-                    <Truck className="w-3.5 h-3.5" /> Free Delivery
-                  </span>
                 </div>
                 <div className="p-6 space-y-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1.5">House / Flat / Block No., Street *</label>
                     <input required type="text" name="addressLine1" value={formData.addressLine1} onChange={handleInputChange}
-                      placeholder="e.g. 12B, Gandhi Street, Anna Nagar"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-900/5 transition-all bg-white" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1.5">Landmark <span className="font-normal text-gray-400">(optional)</span></label>
-                    <input type="text" name="addressLine2" value={formData.addressLine2} onChange={handleInputChange}
-                      placeholder="e.g. Near Big Bazaar"
                       className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-900/5 transition-all bg-white" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1.5">PIN Code *</label>
                       <input required type="text" name="pincode" value={formData.pincode} onChange={handleInputChange}
-                        placeholder="600001" maxLength={6} pattern="[0-9]{6}"
+                        maxLength={6} pattern="[0-9]{6}"
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-900/5 transition-all bg-white" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-500 mb-1.5">City / Town *</label>
                       <input required type="text" name="city" value={formData.city} onChange={handleInputChange}
-                        placeholder="Chennai"
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-900/5 transition-all bg-white" />
                     </div>
                   </div>
@@ -324,35 +320,22 @@ export default function CheckoutPage() {
                       {INDIAN_STATES.map(s => <option key={s} value={s} style={{ color: '#111827' }}>{s}</option>)}
                     </select>
                   </div>
-
-                  {/* Delivery estimate */}
-                  <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-4 py-3">
-                    <Truck className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <p className="text-xs text-green-800">
-                      <span className="font-semibold">Free delivery</span> · Estimated by <span className="font-semibold">{deliveryDate}</span>
-                    </p>
-                  </div>
                 </div>
               </section>
 
-              {/* Section 3 — Payment */}
               <section className="bg-white rounded-2xl overflow-hidden border border-gray-200/70">
                 <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
                   <span className="w-6 h-6 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
                   <h2 className="font-semibold text-gray-900 text-sm">Payment Method</h2>
                 </div>
                 <div className="p-6">
-                  {/* Toggle */}
                   <div className="flex bg-gray-100 rounded-xl p-1 mb-5">
                     <button type="button" onClick={() => setPaymentMethod('prepaid')}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${paymentMethod === 'prepaid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                      <CreditCard className="w-4 h-4" />
-                      Pay Online
-                      <span className="text-[10px] font-bold bg-green-500 text-white px-1.5 py-0.5 rounded-full leading-none">5% OFF</span>
+                      Pay Online (5% OFF)
                     </button>
                     <button type="button" onClick={() => setPaymentMethod('cod')}
                       className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${paymentMethod === 'cod' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                      <Banknote className="w-4 h-4" />
                       Cash on Delivery
                     </button>
                   </div>
@@ -374,6 +357,16 @@ export default function CheckoutPage() {
                   )}
                 </div>
               </section>
+
+              {/* Error Message */}
+              {checkoutError && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl">
+                  <div className="flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                    <p className="text-sm text-red-800">{checkoutError}</p>
+                  </div>
+                </div>
+              )}
 
               {/* CTA */}
               <button
@@ -473,7 +466,7 @@ export default function CheckoutPage() {
               {/* Delivery chip */}
               <div className="mt-4 flex items-center gap-2.5 text-xs text-gray-500 bg-white rounded-xl px-4 py-3 border border-gray-200/70">
                 <Truck className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
-                <span>Free delivery · Est. by <span className="font-semibold text-gray-700">{deliveryDate}</span></span>
+                <span>Free delivery · <span className="font-semibold text-gray-700">7 to 10 business days</span></span>
               </div>
 
               {/* Trust */}
