@@ -6,6 +6,7 @@ import { Package, ShoppingCart, Settings, LayoutDashboard, Users, BarChart3, Sto
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { PushNotificationManager } from './PushNotificationManager';
 
 export default async function AdminLayout({
   children,
@@ -100,6 +101,7 @@ export default async function AdminLayout({
               <span className="block truncate text-xs text-gray-500">Administrator</span>
             </div>
           </div>
+          <PushNotificationManager vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''} />
         </div>
       </aside>
 

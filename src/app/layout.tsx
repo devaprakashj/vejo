@@ -13,6 +13,13 @@ const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 export const metadata: Metadata = {
   title: "VEJO Studio | Premium Essentials",
   description: "Sustainable, minimalist essentials for the modern home.",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Vejo",
+  },
 };
 
 export default function RootLayout({
