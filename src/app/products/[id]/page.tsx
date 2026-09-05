@@ -15,11 +15,14 @@ import {
   Eye,
   Flame,
   Zap,
-  Heart
+  Heart,
+  Banknote,
+  Tag
 } from 'lucide-react';
 import { useCartStore, useWishlistStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import * as fpixel from '@/lib/fpixel';
+import { useRouter } from 'next/navigation';
 
 export default function ProductDetailsPage({ params }: { params: { id: string } }) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,6 +43,7 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
   const [stock, setStock] = useState(0);
   const [showStickyBar, setShowStickyBar] = useState(false);
 
+  const router = useRouter();
   const addItem = useCartStore((state) => state.addItem);
   const openCart = useCartStore((state) => state.openCart);
 
@@ -144,6 +148,23 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
     });
     
     openCart();
+  };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    addItem({
+      id: params.id,
+      name: product.name,
+      price: product.price,
+      quantity: quantity,
+      image: product.image_url
+    });
+    fpixel.event('InitiateCheckout', {
+      content_ids: [params.id],
+      value: product.price * quantity,
+      currency: 'INR'
+    });
+    router.push('/checkout');
   };
 
   const toggleAccordion = (section: string) => {
@@ -254,6 +275,19 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
                 </div>
 
                 <p className="text-base text-textPrimary">Inclusive of all taxes</p>
+                
+                {/* Key Badges */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <span className="flex items-center gap-1 text-[11px] font-semibold bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-full">
+                    <Truck className="w-3 h-3" /> Free Shipping All India
+                  </span>
+                  <span className="flex items-center gap-1 text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full">
+                    <Banknote className="w-3 h-3" /> COD Available
+                  </span>
+                  <span className="flex items-center gap-1 text-[11px] font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 px-2.5 py-1 rounded-full">
+                    <Tag className="w-3 h-3" /> 5% Off — Online Payment
+                  </span>
+                </div>
               </div>
 
               {/* Color Selector */}
@@ -361,12 +395,12 @@ export default function ProductDetailsPage({ params }: { params: { id: string } 
                   </button>
                 </div>
 
-                {/* Express Checkout (UPI) Button */}
+                {/* Buy Now Button */}
                 <button 
-                  onClick={handleAddToCart}
+                  onClick={handleBuyNow}
                   className="w-full h-14 bg-[#1e293b] text-white flex items-center justify-center gap-2 font-bold tracking-widest uppercase text-sm hover:bg-opacity-90 transition-colors shadow-lg rounded-md"
                 >
-                  Pay with UPI <Zap className="w-4 h-4 fill-current mb-0.5 text-yellow-400" />
+                  Buy Now <Zap className="w-4 h-4 fill-current mb-0.5 text-yellow-400" />
                 </button>
 
                 {/* Accepted Payments Row (Original Logos) */}
