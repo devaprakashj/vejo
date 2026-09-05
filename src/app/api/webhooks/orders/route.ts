@@ -2,14 +2,18 @@ import { NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { createServerClient } from '@supabase/ssr';
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:admin@vejo.in',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
-
 export async function POST(request: Request) {
   try {
+    if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+      webpush.setVapidDetails(
+        process.env.VAPID_SUBJECT || 'mailto:admin@vejo.in',
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+      );
+    } else {
+      console.warn('VAPID keys are missing. Push notifications will not work.');
+    }
+
     const payload = await request.json();
     
     // Validate Supabase Webhook payload (optional: you could check a secret header here)
