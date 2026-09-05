@@ -2,17 +2,19 @@
 /* eslint-disable */
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Save, Image as ImageIcon } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
-import { createProduct } from '../actions';
+import { updateProduct } from '../../actions';
 
-export default function NewProductPage() {
+export default function EditProductPage({ params }: { params: { id: string } }) {
   const router = useRouter();
+  const supabase = createClient();
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   // Form State
   const [name, setName] = useState('');
@@ -23,6 +25,31 @@ export default function NewProductPage() {
   const [colors, setColors] = useState('');
   const [sizes, setSizes] = useState('');
   const [stock, setStock] = useState('0');
+
+  useEffect(() => {
+    async function loadProduct() {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', params.id)
+        .single();
+      
+      if (data) {
+        setName(data.name || '');
+        setDescription(data.description || '');
+        setPrice(data.price?.toString() || '');
+        setCategory(data.category || "Women's Accessories");
+        setImageUrl(data.image_url || '');
+        setColors(data.colors ? data.colors.join(', ') : '');
+        setSizes(data.sizes ? data.sizes.join(', ') : '');
+        setStock(data.stock?.toString() || '0');
+      } else if (error) {
+        alert('Error loading product: ' + error.message);
+      }
+      setLoading(false);
+    }
+    loadProduct();
+  }, [params.id, supabase]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,22 +64,26 @@ export default function NewProductPage() {
       price: parseInt(price),
       category,
       image_url: imageUrl,
-      colors: colorsArray,
-      sizes: sizesArray,
+      colors: colorsArray.length > 0 ? colorsArray : null,
+      sizes: sizesArray.length > 0 ? sizesArray : null,
       stock: parseInt(stock) || 0
     };
 
-    const result = await createProduct(formData);
+    const result = await updateProduct(params.id, formData);
 
     setSaving(false);
 
     if (!result.success) {
-      alert('Error creating product: ' + result.error);
+      alert('Error updating product: ' + result.error);
     } else {
       router.push('/admin/products');
       router.refresh();
     }
   };
+
+  if (loading) {
+    return <div className="p-12 text-center text-gray-500">Loading product data...</div>;
+  }
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -60,7 +91,7 @@ export default function NewProductPage() {
         <Link href="/admin/products" className="text-gray-500 hover:text-black bg-white p-2 rounded-full shadow-sm border border-gray-200">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-3xl font-serif font-bold text-gray-900">Add New Product</h1>
+        <h1 className="text-3xl font-serif font-bold text-gray-900">Edit Product</h1>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -192,7 +223,7 @@ export default function NewProductPage() {
               className="px-6 py-2.5 bg-accent text-white rounded-md font-medium text-sm flex items-center gap-2 hover:bg-opacity-90 transition-colors disabled:opacity-50"
             >
               <Save className="w-4 h-4" />
-              {saving ? 'Publishing...' : 'Publish Product'}
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
@@ -200,4 +231,3 @@ export default function NewProductPage() {
     </div>
   );
 }
-
