@@ -35,12 +35,23 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F3F4F6]">
+    <div className="flex min-h-screen bg-[#F3F4F6] pb-20 md:pb-0">
       {/* Hide global storefront Header and Footer in Admin Panel */}
       <style dangerouslySetInnerHTML={{ __html: 'header, footer { display: none !important; }' }} />
       
-      {/* Advanced Dark Sidebar */}
-      <aside className="w-64 bg-[#111827] text-white flex flex-col fixed h-full z-10 shadow-2xl">
+      {/* Mobile Top Header */}
+      <div className="md:hidden fixed top-0 w-full h-14 bg-[#111827] text-white flex items-center justify-between px-4 z-40 shadow-md">
+        <Link href="/admin" className="flex items-center gap-2">
+          <Store className="w-5 h-5 text-accent" />
+          <span className="font-serif text-md tracking-wide">Seller Central</span>
+        </Link>
+        <div className="flex items-center gap-2">
+          <PushNotificationManager />
+        </div>
+      </div>
+
+      {/* Desktop Sidebar (hidden on mobile) */}
+      <aside className="hidden md:flex w-64 bg-[#111827] text-white flex-col fixed h-full z-10 shadow-2xl">
         <div className="p-6 border-b border-gray-800 flex items-center justify-between">
           <Link href="/admin" className="flex items-center gap-2">
             <Store className="w-6 h-6 text-accent" />
@@ -55,10 +66,6 @@ export default async function AdminLayout({
               <LayoutDashboard className="w-5 h-5 text-gray-400 group-hover:text-accent transition-colors" />
               Dashboard
             </Link>
-            <Link href="/admin/analytics" className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-300 rounded-lg hover:bg-gray-800 hover:text-white transition-all group">
-              <BarChart3 className="w-5 h-5 text-gray-400 group-hover:text-accent transition-colors" />
-              Analytics & Reports
-            </Link>
           </nav>
 
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mt-6 mb-2 px-4">Manage</p>
@@ -66,11 +73,6 @@ export default async function AdminLayout({
             <Link href="/admin/orders" className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-300 rounded-lg hover:bg-gray-800 hover:text-white transition-all group">
               <ShoppingCart className="w-5 h-5 text-gray-400 group-hover:text-accent transition-colors" />
               Orders
-              <span className="ml-auto bg-accent text-white text-xs font-bold px-2 py-0.5 rounded-full">New</span>
-            </Link>
-            <Link href="/admin/products" className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-300 rounded-lg hover:bg-gray-800 hover:text-white transition-all group">
-              <Package className="w-5 h-5 text-gray-400 group-hover:text-accent transition-colors" />
-              Inventory & Products
             </Link>
             <Link href="/admin/customers" className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-300 rounded-lg hover:bg-gray-800 hover:text-white transition-all group">
               <Users className="w-5 h-5 text-gray-400 group-hover:text-accent transition-colors" />
@@ -105,8 +107,28 @@ export default async function AdminLayout({
         </div>
       </aside>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 w-full bg-[#111827] border-t border-gray-800 text-gray-400 flex justify-around items-center h-16 z-40 pb-safe">
+        <Link href="/admin" className="flex flex-col items-center gap-1 p-2 hover:text-accent transition-colors focus:text-accent">
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="text-[10px] font-medium uppercase tracking-wider">Home</span>
+        </Link>
+        <Link href="/admin/orders" className="flex flex-col items-center gap-1 p-2 hover:text-accent transition-colors focus:text-accent relative">
+          <ShoppingCart className="w-5 h-5" />
+          <span className="text-[10px] font-medium uppercase tracking-wider">Orders</span>
+        </Link>
+        <Link href="/admin/settings" className="flex flex-col items-center gap-1 p-2 hover:text-accent transition-colors focus:text-accent">
+          <Settings className="w-5 h-5" />
+          <span className="text-[10px] font-medium uppercase tracking-wider">Settings</span>
+        </Link>
+        <Link href="/" target="_blank" className="flex flex-col items-center gap-1 p-2 hover:text-accent transition-colors focus:text-accent">
+          <ExternalLink className="w-5 h-5" />
+          <span className="text-[10px] font-medium uppercase tracking-wider">Store</span>
+        </Link>
+      </nav>
+
       {/* Main Content */}
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 md:ml-64 p-4 md:p-8 pt-20 md:pt-8 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>
