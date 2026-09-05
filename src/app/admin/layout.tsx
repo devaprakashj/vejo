@@ -101,7 +101,7 @@ export default async function AdminLayout({
               <span className="block truncate text-xs text-gray-500">Administrator</span>
             </div>
           </div>
-          <PushNotificationManager vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ''} />
+          <PushNotificationManager />
         </div>
       </aside>
 

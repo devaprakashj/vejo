@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 
-export function PushNotificationManager({ vapidPublicKey }: { vapidPublicKey: string }) {
+const VAPID_PUBLIC_KEY = 'BGn_MSzhUilnu5iVnTB5_SLYA_oQxmiA_gPNgYQ7VJjIp-eplNNm3hf2efMb47nW_Eec0aHW91L9W6G3eirpAGA';
+
+export function PushNotificationManager() {
   const [isSupported, setIsSupported] = useState(false);
   const [subscription, setSubscription] = useState<PushSubscription | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export function PushNotificationManager({ vapidPublicKey }: { vapidPublicKey: st
       const registration = await navigator.serviceWorker.ready;
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
       setSubscription(sub);
 
